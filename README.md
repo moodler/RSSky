@@ -19,7 +19,7 @@ RSSky is a Python-based RSS feed aggregator that helps you stay updated with you
 1. Clone this repository:
 
 ```bash
-git clone https://github.com/yourusername/RSSky.git  # Replace with your repository URL
+git clone https://github.com/moodler/RSSky.git  
 ```
 
 2. Navigate to the project directory:
@@ -40,10 +40,10 @@ pip install -r requirements.txt
 
     ```ini
     [API]
-    api_url = https://ai.moodle.com/v1/chat/completions  # Or your OpenAI endpoint
+    api_url = https://your.ai.provider/v1/chat/completions 
     api_key = your-api-key-here
     model = gemini-2.5-pro  # Or gpt-4, etc.
-    temperature = 0.0
+    temperature = 0.5
     max_tokens = 128000
 
     [Settings]
@@ -53,12 +53,9 @@ pip install -r requirements.txt
     # Optional: You can customize the prompts if you want
     ```
 
-2. Prepare your OPML file containing your RSS feed subscriptions. You can either:
-   - Use an existing OPML file exported from another RSS reader
+2. Prepare your OPML file containing your RSS feed subscriptions. 
+   - The best way to make this is to export one from your RSS reader, or 
    - Create a new OPML file manually
-   - Use the provided `Feeds.opml` file as a starting point (not tracked in git)
-
-**Sensitive files like `config.ini`, `Feeds.opml`, logs, cache, and debug data are excluded from git via `.gitignore`.**
 
 ## Usage
 
@@ -72,27 +69,21 @@ Options:
 - `--days N`: Process feeds from the last N days (default: 1)
 - `--clear-cache`: Clear the cache before running
 - `--config PATH`: Path to configuration file (default: config.ini)
-- `--opml PATH`: Path to OPML file (default: any .opml file in current directory)
+- `--opml PATH`: Path to OPML file (default: the first .opml file in current directory)
 
 2. The script will:
    - Load your feeds from the OPML file
-   - Fetch and process new entries
-   - Generate AI summaries for each article (using strict response schemas)
-   - Create a daily digest of important stories (AI output only, no manual fallback)
+   - Fetch all the feeds and process new entries
+   - Uses AI to Generate AI summaries for each recent article in each feed
+   - Uses AI to create a daily digest of important stories
    - Generate an HTML report (importance ratings and layout improved)
-   - Update the index
+   - Update the index and an outgoing RSS feed for easy consumption
 
-## AI Output Format & Robustness
-
-- **Strict JSON output:** All AI calls for summaries and reports use response schemas to enforce the required JSON structure.
-- **No manual fallback:** The system always uses AI-generated content, with retries and error handling if the format is invalid.
-- **Formatting robustness:** The system cleans AI responses to remove markdown code blocks and other wrappers before parsing.
 
 ## Troubleshooting
 
 - If you encounter issues with AI output format, check the logs and the `debug/` directory for raw prompts and responses.
 - Make sure your API key, endpoint, and model are correct in `config.ini`.
-- If you want to change the cache expiry, edit the `max_age_hours` parameter in `rssky/core/cache_manager.py` (default: 6 hours).
 
 ## Contributing
 
@@ -100,4 +91,4 @@ Pull requests and issues are welcome! Please ensure you do not commit sensitive 
 
 ## License
 
-MIT License
+Martin Dougiamas, GPL v3 License
