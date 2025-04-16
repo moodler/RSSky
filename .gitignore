@@ -1,0 +1,9 @@
+.venv/
+cache/
+debug/
+output/
+config.ini
+Feeds.opml
+reportprompt.txt
+rssky.log
+test.py

@@ -1,0 +1,23 @@
+[API]
+# API endpoint for the AI service
+api_url = https://api.openai.com/v1/chat/completions
+# Your API key 
+api_key = your-api-key-here
+# Model to use
+model = gpt-4
+# Temperature for AI generation (0.0-1.0)
+temperature = 0.7
+# Maximum tokens for AI responses
+max_tokens = 1000
+
+[Settings]
+# Criteria for determining importance of articles
+# Customize this to focus on topics you care about
+importance_criteria = Focus on technological breakthroughs, scientific discoveries, major political events, and significant market movements.
+
+[PROMPTS]
+# These are optional - the system will use sensible defaults if not specified
+# Prompt template for summarizing individual articles
+# summary_prompt = ...
+# Prompt template for generating the daily digest
+# report_prompt = ... 

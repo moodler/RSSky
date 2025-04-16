@@ -1,0 +1,11 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# Your rule content
+
+- Always read [SPECIFICATION.md](mdc:SPECIFICATION.md) 
+- If changes being made mean that [SPECIFICATION.md](mdc:SPECIFICATION.md) would be out of date, then update [SPECIFICATION.md](mdc:SPECIFICATION.md) to match reality.
+
