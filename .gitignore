@@ -7,3 +7,4 @@ Feeds.opml
 reportprompt.txt
 rssky.log
 test.py
+__pycache__/
