@@ -2,6 +2,8 @@ import unittest
 import sys
 import os
 
+from custom_test_runner import CustomTestRunner
+
 def run_tests():
     # Add the project root directory to the Python path
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -12,7 +14,7 @@ def run_tests():
     start_dir = os.path.dirname(os.path.abspath(__file__))
     suite = loader.discover(start_dir, pattern='test_*.py')
     
-    runner = unittest.TextTestRunner(verbosity=2)
+    runner = CustomTestRunner(verbosity=0)
     result = runner.run(suite)
     
     # Return 0 if tests passed, 1 if any failed
