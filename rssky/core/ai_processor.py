@@ -234,13 +234,48 @@ class AIProcessor:
         report_response_file = debug_dir / f"report_response_{date_str}.json"
         # (response will be written after AI call)
         
+        # Determine if using OpenAI model (skip schema injection)
+        api_conf = self.api_config
+        model = api_conf['model'].strip()
+        # Determine if using OpenAI model (which doesn't support response_format param)
+        is_openai = model.lower().startswith("gpt")
+        temperature = float(self.api_config['temperature'])
+        max_tokens = int(self.api_config['max_tokens'])
+        
+        # Prepare the request
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {api_conf['api_key']}"
+        }
+        
+        data = {
+            "model": model,
+            "messages": [
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": digest_prompt}
+            ],
+            "temperature": temperature,
+            "max_tokens": max_tokens
+        }
+        
+        # Inject response_format for Gemini/Google models only
+        schema_flag = not is_openai
+        
         # Make the AI request with retry logic
         max_retries = 3
         retry_delay = 3  # seconds
         attempt = 0
         while attempt < max_retries:
             try:
-                raw_response, parsed_response = self._make_ai_request(digest_prompt, use_report_schema=True)
+                raw_response, parsed_response = self._make_ai_request(digest_prompt, use_report_schema=schema_flag)
+                # Map 'news' key to 'stories' if API returned it
+                if parsed_response and isinstance(parsed_response, dict):
+                    if "news" in parsed_response:
+                        logger.warning("API response used 'news' key; mapping to 'stories'")
+                        parsed_response["stories"] = parsed_response.pop("news")
+                    elif "newsStories" in parsed_response:
+                        logger.warning("API response used 'newsStories' key; mapping to 'stories'")
+                        parsed_response["stories"] = parsed_response.pop("newsStories")
                 # Always write the raw AI response to the debug file BEFORE any validation logic
                 try:
                     report_response_file.write_text(str(raw_response), encoding="utf-8")
@@ -280,7 +315,9 @@ class AIProcessor:
                     api_url = api_url + '/v1/chat/completions'
                     
             api_key = self.api_config['api_key']
-            model = self.api_config['model']
+            model = self.api_config['model'].strip()
+            # Determine if using OpenAI model (which doesn't support response_format param)
+            is_openai = model.lower().startswith("gpt")
             temperature = float(self.api_config['temperature'])
             max_tokens = int(self.api_config['max_tokens'])
             
@@ -293,16 +330,16 @@ class AIProcessor:
             data = {
                 "model": model,
                 "messages": [
-                    {"role": "system", "content": "You are a helpful assistant."},
+                    {"role": "system", "content": "You are a helpful assistant that only responds with valid, unformatted JSON."},
                     {"role": "user", "content": prompt}
                 ],
                 "temperature": temperature,
                 "max_tokens": max_tokens
             }
             
-            # Inject response_schema for the final report call
-            if use_report_schema:
-                response_schema = {
+            # Inject response_format for Gemini/Google models only
+            if use_report_schema and not is_openai:
+                response_format = {
                     "type": "object",
                     "properties": {
                         "stories": {
@@ -334,11 +371,11 @@ class AIProcessor:
                     "required": ["stories"]
                 }
                 # Try Gemini/Google-style schema param, fallback to OpenAI function calling if needed
-                data["response_schema"] = response_schema
+                data["response_format"] = response_format
             
-            # Inject response_schema for summary calls
-            if use_summary_schema:
-                summary_schema = {
+            # Inject response_format for summary calls
+            if use_summary_schema and not is_openai:
+                summary_format = {
                     "type": "object",
                     "properties": {
                         "importance": {"type": "number"},
@@ -348,7 +385,7 @@ class AIProcessor:
                     },
                     "required": ["importance", "summary", "impact", "date"]
                 }
-                data["response_schema"] = summary_schema
+                data["response_format"] = summary_format
             
             # Make the request
             logger.info(f"Making API request to {api_url} with model {model}")
@@ -379,7 +416,7 @@ class AIProcessor:
                 json_str = self._extract_json_from_string(content, entry_title, prompt)
                 
                 if not json_str:
-                    logger.error("Could not extract JSON from API response")
+                    logger.error(f"Could not extract JSON from API response. Raw content was: {content}")
                     return (content, None)
                 
                 # Save extracted JSON for debugging
@@ -407,19 +444,31 @@ class AIProcessor:
         """Extract JSON from a string that may contain <think> tags, markdown code blocks, or plain JSON, and strip comments and invalid control characters. Save failed extractions."""
         import re
         s = s.strip()
-        # Remove markdown code block wrappers if present
-        if s.startswith('```json') and s.endswith('```'):
-            s = s[7:-3].strip()
-        elif s.startswith('```') and s.endswith('```'):
-            s = s[3:-3].strip()
-        # Only demjson3 cleaning
+        
+        # Find the start of the JSON object
+        start_brace = s.find('{')
+        if start_brace == -1:
+            logger.error("Could not find starting brace '{' in AI response.")
+            return ""
+            
+        # Find the end of the JSON object
+        end_brace = s.rfind('}')
+        if end_brace == -1:
+            logger.error("Could not find ending brace '}' in AI response.")
+            return ""
+            
+        json_str = s[start_brace:end_brace+1]
+        
+        # Use demjson3 for robust parsing
         try:
-            cleaned_obj = demjson3.decode(s)
+            cleaned_obj = demjson3.decode(json_str)
+            # Re-encode to ensure it's a clean JSON string
             json_str = demjson3.encode(cleaned_obj)
             logger.debug(f"[DEBUG] demjson3 sanitized JSON string for parsing: {repr(json_str[:1000])}")
         except Exception as e:
-            logger.error(f"[DEBUG] demjson3 failed to decode: {e}")
+            logger.error(f"[DEBUG] demjson3 failed to decode extracted JSON: {e}")
             return ""
+            
         return json_str
     
     def _generate_fallback_summary(self, entry):

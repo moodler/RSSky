@@ -18,9 +18,6 @@ import datetime
 import logging
 from pathlib import Path
 
-# Import the test runner function
-from tests.run_tests import run_tests 
-
 from rssky.core.config import Config
 from rssky.core.feed_manager import FeedManager
 from rssky.core.content_processor import ContentProcessor
@@ -82,14 +79,6 @@ def main():
     logger.info("Emptied debug directory.")
     logger.info("Starting RSSky")
 
-    # Run unit tests first
-    logger.info("Running unit tests...")
-    test_result = run_tests()
-    if test_result != 0:
-        logger.error("Unit tests failed. Exiting.")
-        sys.exit(test_result) # Exit with the test runner's exit code
-    logger.info("Unit tests passed successfully.")
-    
     # Parse command line arguments
     args = parse_arguments()
     
